@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saisie Production — Guitte</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f0ea; min-height: 100vh; }
+
+  .header { background: #1e3a0d; color: #C0DD97; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .header-icon { width: 36px; height: 36px; background: #27500A; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .header-title { font-size: 17px; font-weight: 500; }
+  .header-sub { font-size: 12px; color: #639922; margin-top: 2px; }
+
+  .tabs { display: flex; background: #27500A; padding: 0 24px; }
+  .tab { padding: 10px 20px; font-size: 13px; color: #97C459; cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab.active { color: #C0DD97; border-bottom-color: #97C459; background: #1e3a0d; }
+
+  .container { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .mode-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-radius: 6px; margin-bottom: 14px; font-size: 13px; font-weight: 500; }
+  .mode-bar.normal { background: #EAF3DE; color: #27500A; border: 0.5px solid #97C459; }
+  .mode-bar.force { background: #FAEEDA; color: #854F0B; border: 0.5px solid #EF9F27; }
+  .mode-toggle { font-size: 11px; padding: 4px 12px; border-radius: 4px; cursor: pointer; border: none; font-weight: 500; }
+  .mode-toggle.to-force { background: #EF9F27; color: #fff; }
+  .mode-toggle.to-normal { background: #639922; color: #fff; }
+
+  .section { background: #fff; border-radius: 8px; border: 0.5px solid #d5d0c5; margin-bottom: 14px; overflow: hidden; }
+  .section-header { background: #f8f7f3; padding: 9px 16px; font-size: 11px; font-weight: 500; color: #3B6D11; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 0.5px solid #e8e5de; }
+  .section-body { padding: 14px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 4px; }
+  .req { color: #A32D2D; }
+  .opt { color: #aaa; font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  input, select, textarea { border: 0.5px solid #d0cdc5; border-radius: 5px; padding: 8px 10px; font-size: 13px; color: #1a1a1a; background: #fafaf8; outline: none; width: 100%; transition: border-color 0.15s; }
+  input:focus, select:focus, textarea:focus { border-color: #639922; background: #fff; box-shadow: 0 0 0 2px rgba(99,153,34,0.1); }
+  input.error, select.error { border-color: #E24B4A; background: #fff8f8; }
+  input.ok, select.ok { border-color: #97C459; }
+  .err-msg { font-size: 10px; color: #E24B4A; margin-top: 2px; display: none; }
+  .err-msg.show { display: block; }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .submit-bar { background: #fff; border-radius: 8px; border: 0.5px solid #d5d0c5; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 30px; }
+  .btn { padding: 10px 22px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
+  .btn-primary { background: #639922; color: #fff; }
+  .btn-primary:hover { background: #3B6D11; }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+  .btn-force { background: #EF9F27; color: #fff; display: none; }
+  .btn-force.show { display: inline-block; }
+  .btn-force:hover { background: #c47d10; }
+  .btn-secondary { background: #f0ede5; color: #555; border: 0.5px solid #d0cdc5; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 6px; font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: none; z-index: 999; max-width: 350px; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: #EAF3DE; color: #27500A; border: 0.5px solid #97C459; }
+  .toast.error { background: #FCEBEB; color: #791F1F; border: 0.5px solid #E24B4A; }
+  .toast.warn { background: #FAEEDA; color: #854F0B; border: 0.5px solid #EF9F27; }
+
+  .progress { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #639922; }
+  .progress-bar { flex: 1; height: 5px; background: #e8e5de; border-radius: 3px; overflow: hidden; max-width: 120px; }
+  .progress-fill { height: 100%; background: #639922; border-radius: 3px; transition: width 0.3s; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🥚</div>
+  <div>
+    <div class="header-title">Saisie Production — Guitte</div>
+    <div class="header-sub">Calibreuse &amp; Laveuse · CDPO</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('calibreuse')">Calibreuse</div>
+  <div class="tab" onclick="switchTab('laveuse')">Laveuse</div>
+</div>
+
+<!-- ===== CALIBREUSE ===== -->
+<div id="tab-calibreuse" class="tab-content active">
+<div class="container">
+
+  <div class="mode-bar normal" id="modebar-cal">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="modeicon-cal">✅</span>
+      <span id="modelabel-cal">Mode normal — tous les champs requis</span>
+      <div class="progress"><div class="progress-bar"><div class="progress-fill" id="progress-cal" style="width:0%"></div></div><span id="progress-pct-cal">0%</span></div>
+    </div>
+    <button class="mode-toggle to-force" onclick="toggleForce('cal')" id="morebtn-cal">⚡ Mode forcé</button>
+  </div>
+
+  <form id="form-calibreuse" novalidate>
+
+    <div class="section">
+      <div class="section-header">Identification</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" name="DATE" id="cal-Date" required>
+          <span class="err-msg" id="err-cal-Date">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Poste <span class="req">*</span></label>
+          <select name="POSTE" id="cal-Poste" required>
+            <option value="">— Sélectionner —</option>
+            <option value="m">Matin (M)</option>
+            <option value="s">Soir (S)</option>
+          </select>
+          <span class="err-msg" id="err-cal-Poste">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Conducteur de ligne <span class="req">*</span></label>
+          <select name="CONDUCTEUR" id="cal-conducteur" required>
+            <option value="">— Sélectionner —</option>
+            <option value="cedric">Cédric</option>
+            <option value="kevin">Kévin</option>
+            <option value="Michel">Michel</option>
+            <option value="Xavier">Xavier</option>
+          </select>
+          <span class="err-msg" id="err-cal-conducteur">Champ obligatoire</span>
+        </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">Horaires</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Heure début calibreuse <span class="req">*</span></label>
+          <input type="time" name="H_DEBUT" id="cal-hdebut" required>
+          <span class="err-msg" id="err-cal-hdebut">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Heure fin calibreuse <span class="req">*</span></label>
+          <input type="time" name="H_FIN" id="cal-hfin" required>
+          <span class="err-msg" id="err-cal-hfin">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Pause (hh:mm) <span class="req">*</span></label>
+          <input type="time" name="PAUSE" id="cal-pause" required value="00:30">
+          <span class="err-msg" id="err-cal-pause">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Heure fin de poste <span class="req">*</span></label>
+          <input type="time" name="H_FIN_POSTE" id="cal-hfinposte" required>
+          <span class="err-msg" id="err-cal-hfinposte">Champ obligatoire</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">Production</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Nb d'œufs <span class="req">*</span></label>
+          <input type="number" name="NB_OEUFS" id="cal-oeufs" min="0" max="400000" required placeholder="ex: 234356">
+          <span class="err-msg" id="err-cal-oeufs">Entre 0 et 400 000</span>
+        </div>
+        <div class="field">
+          <label>Objectif cadence <span class="req">*</span></label>
+          <input type="number" name="OBJ_CADENCE" id="cal-objcad" min="1000" max="200000" required value="40000">
+          <span class="err-msg" id="err-cal-objcad">Valeur requise</span>
+        </div>
+        <div class="field">
+          <label>Tx remplissage % <span class="opt">(optionnel)</span></label>
+          <input type="text" name="TX_REMPLISSAGE" placeholder="ex: 1,3" inputmode="decimal">
+          <span class="err-msg" id="err-cal-txremplissage">Entre 0 et 2</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">Arrêts Loader</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Nb arrêt loader <span class="req">*</span></label>
+          <input type="number" name="NB_ARRET" id="cal-nbarret" min="0" max="200" required placeholder="ex: 39">
+          <span class="err-msg" id="err-cal-nbarret">Entre 0 et 200</span>
+        </div>
+        <div class="field">
+          <label>Tps arrêt loader (mn) <span class="req">*</span></label>
+          <input type="number" name="TPS_ARRET" id="cal-tpsarret" min="0" max="480" required placeholder="ex: 23">
+          <span class="err-msg" id="err-cal-tpsarret">Entre 0 et 480 min</span>
+        </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">Qualité — Déclassés</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Déclassé % <span class="req">*</span></label>
+          <input type="text" name="DECLASSE" placeholder="ex: 1,3" inputmode="decimal">
+          <span class="err-msg" id="err-cal-declasse">Entre 0 et 10%</span>
+        </div>
+        <div class="field">
+          <label>Seau % <span class="req">*</span></label>
+          <input type="text" name="SEAU" placeholder="ex: 1,3" inputmode="decimal">
+          <span class="err-msg" id="err-cal-seau">Entre 0 et 10%</span>
+        </div>
+        <div class="field">
+          <label>Sale % <span class="req">*</span></label>
+          <input type="text" name="SALE" placeholder="ex: 1,3" inputmode="decimal">
+          <span class="err-msg" id="err-cal-sale">Entre 0 et 10%</span>
+        </div>
+        <div class="field">
+          <label>KC% <span class="req">*</span></label>
+          <input type="text" name="KC" placeholder="ex: 1,3" inputmode="decimal">
+          <span class="err-msg" id="err-cal-kc">Entre 0 et 10%</span>
+        </div>
+        <div class="field">
+          <label>Nb tapis bleu <span class="req">*</span></label>
+          <input type="number" name="NB_TAPIS" id="cal-tapis" min="0" max="5000" required placeholder="ex: 285">
+          <span class="err-msg" id="err-cal-tapis">Entre 0 et 2000</span>
+        </div>
+        <div class="field">
+          <label>Erreur taquet <span class="opt">(optionnel)</span></label>
+          <input type="number" name="ERR_TAQUET" id="cal-taquet" min="0">
+        </div>
+        <div class="field">
+          <label>Nb report <span class="opt">(optionnel)</span></label>
+          <input type="number" name="NB_REPORT" id="cal-report" min="0">
+        </div>
+        <div class="field">
+          <label>Nb palette double <span class="opt">(optionnel)</span></label>
+          <input type="number" name="NB_PAL_DOUBLE" id="cal-paldouble" min="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">Commentaires</div>
+      <div class="section-body">
+        <div class="field full">
+          <label>Observations <span class="opt">(optionnel)</span></label>
+          <textarea name="COMMENTAIRES" id="cal-commentaires" placeholder="Incidents, pannes, observations..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button type="button" class="btn btn-secondary" onclick="resetForm('cal')">Réinitialiser</button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button type="button" class="btn btn-force" id="btn-force-cal" onclick="exportCSV('cal', true)">⚡ Export forcé (INCOMPLET)</button>
+        <button type="button" class="btn btn-primary" id="btn-export-cal" onclick="exportCSV('cal', false)">📥 Exporter CSV</button>
+      </div>
+    </div>
+
+  </form>
+</div>
+</div>
+
+<!-- ===== LAVEUSE ===== -->
+<div id="tab-laveuse" class="tab-content">
+<div class="container">
+
+  <div class="mode-bar normal" id="modebar-lav">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="modeicon-lav">✅</span>
+      <span id="modelabel-lav">Mode normal — tous les champs requis</span>
+      <div class="progress"><div class="progress-bar"><div class="progress-fill" id="progress-lav" style="width:0%"></div></div><span id="progress-pct-lav">0%</span></div>
+    </div>
+    <button class="mode-toggle to-force" onclick="toggleForce('lav')" id="morebtn-lav">⚡ Mode forcé</button>
+  </div>
+
+  <form id="form-laveuse" novalidate>
+
+    <div class="section">
+      <div class="section-header">Identification</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" name="DATE" id="lav-Date" required>
+          <span class="err-msg" id="err-lav-Date">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Poste <span class="req">*</span></label>
+          <select name="POSTE" id="lav-Poste" required>
+            <option value="">— Sélectionner —</option>
+            <option value="m">Matin (M)</option>
+            <option value="s">Soir (S)</option>
+          </select>
+          <span class="err-msg" id="err-lav-Poste">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Alim laveuse <span class="req">*</span></label>
+          <input type="text" name="ALIM_LAVEUSE" id="lav-alim" required placeholder="Nom opérateur">
+          <span class="err-msg" id="err-lav-alim">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Nb pers. Équipe <span class="req">*</span></label>
+          <input type="number" name="NB_PERS" id="lav-nbpers" min="1" max="20" required placeholder="ex: 5">
+          <span class="err-msg" id="err-lav-nbpers">Entre 1 et 20</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">Horaires</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Heure début <span class="req">*</span></label>
+          <input type="time" name="H_DEBUT" id="lav-hdebut" required>
+          <span class="err-msg" id="err-lav-hdebut">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Heure fin <span class="req">*</span></label>
+          <input type="time" name="H_FIN" id="lav-hfin" required>
+          <span class="err-msg" id="err-lav-hfin">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Pause (hh:mm) <span class="req">*</span></label>
+          <input type="time" name="PAUSE" id="lav-pause" required value="00:30">
+          <span class="err-msg" id="err-lav-pause">Champ obligatoire</span>
+        </div>
+        <div class="field">
+          <label>Heure fin de poste <span class="req">*</span></label>
+          <input type="time" name="H_FIN_POSTE" id="lav-hfinposte" required>
+          <span class="err-msg" id="err-lav-hfinposte">Champ obligatoire</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">Production</div>
+      <div class="section-body">
+        <div class="field">
+          <label>Laveuse 1 — Qté alvéoles <span class="req">*</span></label>
+          <input type="number" name="LAVEUSE_1" id="lav-l1" min="0" max="50000" required placeholder="ex: 4800">
+          <span class="err-msg" id="err-lav-l1">Entre 0 et 50 000</span>
+        </div>
+        <div class="field">
+          <label>Laveuse 2 — Qté alvéoles <span class="req">*</span></label>
+          <input type="number" name="LAVEUSE_2" id="lav-l2" min="0" max="50000" required placeholder="ex: 4515">
+          <span class="err-msg" id="err-lav-l2">Entre 0 et 50 000</span>
+        </div>
+        <div class="field">
+          <label>Objectif cadence <span class="req">*</span></label>
+          <input type="number" name="OBJ_CADENCE" id="lav-objcad" min="1000" max="20000" required value="3500">
+          <span class="err-msg" id="err-lav-objcad">Valeur requise</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">Commentaires</div>
+      <div class="section-body">
+        <div class="field full">
+          <label>Observations <span class="opt">(optionnel)</span></label>
+          <textarea name="COMMENTAIRES" id="lav-commentaires" placeholder="Incidents, pannes, observations..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button type="button" class="btn btn-secondary" onclick="resetForm('lav')">Réinitialiser</button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button type="button" class="btn btn-force" id="btn-force-lav" onclick="exportCSV('lav', true)">⚡ Export forcé (INCOMPLET)</button>
+        <button type="button" class="btn btn-primary" id="btn-export-lav" onclick="exportCSV('lav', false)">📥 Exporter CSV</button>
+      </div>
+    </div>
+
+  </form>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const REQUIRED_CAL = ['cal-Date','cal-Poste','cal-conducteur','cal-nbpers','cal-hdebut','cal-hfin','cal-pause','cal-hfinposte','cal-oeufs','cal-objcad','cal-nbarret','cal-tpsarret','cal-declasse','cal-seau','cal-sale','cal-kc','cal-tapis'];
+const REQUIRED_LAV = ['lav-Date','lav-Poste','lav-alim','lav-nbpers','lav-hdebut','lav-hfin','lav-pause','lav-hfinposte','lav-l1','lav-l2','lav-objcad'];
+
+let forceMode = { cal: false, lav: false };
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function toggleForce(tab) {
+  forceMode[tab] = !forceMode[tab];
+  const bar = document.getElementById(`modebar-${tab}`);
+  const icon = document.getElementById(`modeicon-${tab}`);
+  const label = document.getElementById(`modelabel-${tab}`);
+  const btn = document.getElementById(`morebtn-${tab}`);
+  const btnForce = document.getElementById(`btn-force-${tab}`);
+  const btnExport = document.getElementById(`btn-export-${tab}`);
+
+  if (forceMode[tab]) {
+    bar.className = 'mode-bar force';
+    icon.textContent = '⚡';
+    label.textContent = 'Mode forcé — export même si incomplet';
+    btn.textContent = '✅ Mode normal';
+    btn.className = 'mode-toggle to-normal';
+    btnForce.classList.add('show');
+    btnExport.style.display = 'none';
+  } else {
+    bar.className = 'mode-bar normal';
+    icon.textContent = '✅';
+    label.textContent = 'Mode normal — tous les champs requis';
+    btn.textContent = '⚡ Mode forcé';
+    btn.className = 'mode-toggle to-force';
+    btnForce.classList.remove('show');
+    btnExport.style.display = 'inline-block';
+  }
+}
+
+function validateField(id, required) {
+  // Champs decimaux acceptent virgule ou point
+  const decimalFields = ['cal-declasse','cal-seau','cal-sale','cal-kc','cal-txremplissage'];
+  if (decimalFields.includes(id)) {
+    const el = document.getElementById(id);
+    if (!el) return true;
+    const val = el.value.trim().replace(',', '.');
+    const errEl = document.getElementById('err-' + id);
+    let valid = true;
+    if (required && val === '') { valid = false; }
+    else if (val !== '') {
+      const n = parseFloat(val);
+      if (isNaN(n) || n < 0 || n > 10) valid = false;
+    }
+    el.classList.toggle('error', !valid);
+    el.classList.toggle('ok', valid && val !== '');
+    if (errEl) errEl.classList.toggle('show', !valid);
+    return valid;
+  }
+  const el = document.getElementById(id);
+  if (!el) return true;
+  const errEl = document.getElementById('err-' + id);
+  const val = el.value.trim();
+  let valid = true;
+
+  if (required && !val) {
+    valid = false;
+  } else if (val && el.type === 'number') {
+    const n = parseFloat(val);
+    if (el.min !== '' && n < parseFloat(el.min)) valid = false;
+    if (el.max !== '' && n > parseFloat(el.max)) valid = false;
+  }
+
+  el.classList.toggle('error', !valid);
+  el.classList.toggle('ok', valid && val !== '');
+  if (errEl) errEl.classList.toggle('show', !valid);
+  return valid;
+}
+
+function validateAll(tab) {
+  const required = tab === 'cal' ? REQUIRED_CAL : REQUIRED_LAV;
+  let allValid = true;
+  required.forEach(id => {
+    if (!validateField(id, true)) allValid = false;
+  });
+  return allValid;
+}
+
+function updateProgress(tab) {
+  const required = tab === 'cal' ? REQUIRED_CAL : REQUIRED_LAV;
+  let filled = 0;
+  required.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value.trim() !== '') filled++;
+  });
+  const pct = Math.round((filled / required.length) * 100);
+  document.getElementById(`progress-cal${tab === 'cal' ? '' : ''}`);
+  const fill = document.getElementById(`progress-${tab}`);
+  const pctEl = document.getElementById(`progress-pct-${tab}`);
+  if (fill) fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (fill) fill.style.background = pct === 100 ? '#3B6D11' : pct > 60 ? '#97C459' : '#EF9F27';
+}
+
+// Live validation
+['cal','lav'].forEach(tab => {
+  const required = tab === 'cal' ? REQUIRED_CAL : REQUIRED_LAV;
+  required.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => { validateField(id, true); updateProgress(tab); });
+      el.addEventListener('change', () => { validateField(id, true); updateProgress(tab); });
+    }
+  });
+});
+
+function getFormData(tab) {
+  const prefix = tab === 'cal' ? 'form-calibreuse' : 'form-laveuse';
+  const form = document.getElementById(prefix);
+  const data = { _onglet: tab === 'cal' ? 'calibreuse' : 'laveuse' };
+  new FormData(form).forEach((v, k) => { data[k] = v; });
+  return data;
+}
+
+function buildFilename(tab, forced) {
+  const dateEl = document.getElementById(`${tab}-Date`);
+  const posteEl = document.getElementById(`${tab}-Poste`);
+  const condEl = tab === 'cal' ? document.getElementById('cal-conducteur') : document.getElementById('lav-alim');
+  const date = dateEl ? dateEl.value : new Date().toISOString().slice(0,10);
+  const poste = posteEl ? (posteEl.value || 'X') : 'X';
+  const cond = condEl ? (condEl.value || 'inconnu') : 'inconnu';
+  const onglet = tab === 'cal' ? 'CAL' : 'LAV';
+  const suffix = forced ? '_INCOMPLET' : '';
+  return `GUITTE_${onglet}_${date}_${poste.toUpperCase()}_${cond}${suffix}.csv`;
+}
+
+function exportCSV(tab, forced) {
+  if (!forced) {
+    const valid = validateAll(tab);
+    if (!valid) {
+      showToast('⚠️ Champs manquants ou invalides — utilisez le mode forcé si nécessaire', 'error');
+      return;
+    }
+  }
+
+  const data = getFormData(tab);
+  delete data._onglet;
+  const keys = Object.keys(data);
+  const vals = keys.map(k => `"${(data[k]||'').toString().replace(/"/g,'""')}"`);
+  const csv = keys.join(';') + '\n' + vals.join(';');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = buildFilename(tab, forced);
+  a.click();
+
+  if (forced) {
+    showToast('⚡ Export forcé — fichier INCOMPLET exporté', 'warn');
+  } else {
+    showToast('✓ CSV exporté — déposez-le dans le dossier Export stats', 'success');
+  }
+}
+
+function resetForm(tab) {
+  const prefix = tab === 'cal' ? 'form-calibreuse' : 'form-laveuse';
+  document.getElementById(prefix).reset();
+  document.getElementById(`${tab}-Date`).value = new Date().toISOString().slice(0,10);
+  if (tab === 'cal') document.getElementById('cal-pause').value = '00:30';
+  if (tab === 'lav') document.getElementById('lav-pause').value = '00:30';
+  const required = tab === 'cal' ? REQUIRED_CAL : REQUIRED_LAV;
+  required.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('error','ok'); }
+    const errEl = document.getElementById('err-' + id);
+    if (errEl) errEl.classList.remove('show');
+  });
+  updateProgress(tab);
+  showToast('Formulaire réinitialisé', 'success');
+}
+
+// Init
+document.querySelectorAll('input[type="date"]').forEach(el => {
+  el.value = new Date().toISOString().slice(0, 10);
+});
+updateProgress('cal');
+updateProgress('lav');
+</script>
+
+<script>
+// Remplacer point du pave numerique par virgule sur champs decimaux
+const decimalIds = ['cal-declasse','cal-seau','cal-sale','cal-kc','cal-txremplissage'];
+decimalIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('keydown', function(e) {
+    if (e.key === '.' || e.code === 'NumpadDecimal') {
+      e.preventDefault();
+      const pos = this.selectionStart;
+      const val = this.value;
+      this.value = val.slice(0, pos) + ',' + val.slice(this.selectionEnd);
+      this.selectionStart = this.selectionEnd = pos + 1;
+    }
+  });
+});
+</script>
+</body>
+</html>
